@@ -65,28 +65,37 @@ plt.title("Ocean Chemistry Regimes (DIC)")
 plt.show()
 
 # model 3
-plt.figure(figsize=(8,6))
+plt.figure(figsize=(9,7))
 
-plt.hexbin(
+# Main layer: chemistry
+hb = plt.hexbin(
     chem_df['Longitude'],
     chem_df['Latitude'],
     C=chem_df['DIC'],
     reduce_C_function=np.mean,
-    gridsize=50,
+    gridsize=60,
     cmap='viridis',
-    alpha=0.6
+    mincnt=5,
+    linewidths=0
 )
 
-plt.scatter(
+# Tracks: super light + thin
+plt.plot(
     seamap_p_df['longitude'],
     seamap_p_df['latitude'],
-    color='red',
-    s=3,
-    alpha=0.3
+    color='white',
+    linewidth=0.3,
+    alpha=0.2
 )
 
-plt.colorbar(label="DIC")
+cb = plt.colorbar(hb)
+cb.set_label("DIC")
+
+plt.xlabel("Longitude")
+plt.ylabel("Latitude")
 plt.title("Marine Observations vs Ocean Chemistry Regimes")
+
+plt.tight_layout()
 plt.show()
 
 # model 4
