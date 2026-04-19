@@ -2,10 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+
 from scipy.spatial import cKDTree
 
 chem_df = pd.read_csv("CALCOFI_DIC_20250122.csv")
-# chem_df = chem_df[(chem_df['Year_UTC'] <= 2006) & (chem_df['Year_UTC'] >= 1987)] # keep the year range the same
 chem_df = chem_df.iloc[1:].reset_index(drop=True)
 chem_df = chem_df.replace(-999, np.nan)
 chem_df['datetime'] = pd.to_datetime(
@@ -31,7 +31,6 @@ seamap_p_df['date_time'] = pd.to_datetime(seamap_p_df['date_time'], errors='coer
 seamap_p_df = seamap_p_df.dropna(subset=['date_time'])
 seamap_p_df['year'] = seamap_p_df['date_time'].dt.year
 seamap_p_df['month'] = seamap_p_df['date_time'].dt.month
-# seamap_p_df = seamap_p_df[(seamap_p_df['year'] >= 1987) & (seamap_p_df['year'] <= 2006)]
 seamap_p_df = seamap_p_df.dropna(subset=['latitude', 'longitude'])
 
 # model 1
@@ -90,18 +89,24 @@ plt.colorbar(label="DIC")
 plt.title("Marine Observations vs Ocean Chemistry Regimes")
 plt.show()
 
-# model 4 (maybe keep)
-chem_lat = chem_df.groupby(pd.cut(chem_df['Latitude'], 20))['DIC'].mean()
+# model 4
+
+chem_coords = np.column_stack((chem_df['Latitude'], chem_df['Longitude']))
+tree = cKDTree(chem_coords)
+bio_coords = np.column_stack((seamap_p_df['latitude'], seamap_p_df['longitude']))
+dist, idx = tree.query(bio_coords, k=1)
+seamap_p_df['matched_DIC'] = chem_df.iloc[idx]['DIC'].values
 
 plt.figure(figsize=(8,5))
-plt.plot(chem_lat.values)
-plt.title("Latitudinal Gradient of DIC")
-plt.xlabel("Latitude bins (south → north)")
-plt.ylabel("Mean DIC")
+
+sns.kdeplot(chem_df['DIC'], label='All Ocean DIC', fill=True, alpha=0.4)
+sns.kdeplot(seamap_p_df['matched_DIC'], label='At Observation Locations', fill=True, alpha=0.4)
+
+plt.xlabel("DIC")
+plt.ylabel("Density")
+plt.title("Do Marine Observations Occur in Specific DIC Conditions?")
+plt.legend()
 plt.show()
 
-chem_df['DIC_bin'] = pd.qcut(chem_df['DIC'], 5)
-
-bio_density = pd.cut(
-    seamap_p_df['longitude'], bins=20
-).value_counts().sort_index()
+print("Mean DIC (overall):", chem_df['DIC'].mean())
+print("Mean DIC (observations):", seamap_p_df['matched_DIC'].mean())
